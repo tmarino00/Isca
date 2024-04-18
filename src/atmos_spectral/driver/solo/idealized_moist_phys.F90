@@ -127,6 +127,7 @@ logical :: do_socrates_radiation = .false.
 
 ! MiMA uses damping
 logical :: do_damping = .false.
+logical :: do_prescribed_eddyfluxes = .false.
 
 
 logical :: mixed_layer_bc = .false.
@@ -164,7 +165,9 @@ namelist / idealized_moist_phys_nml / turb, lwet_convection, do_bm, do_ras, roug
                                       gp_surface, convection_scheme,                 &
                                       bucket, init_bucket_depth, init_bucket_depth_land, &
                                       max_bucket_depth_land, robert_bucket, raw_bucket, &
-                                      do_socrates_radiation, do_lcl_diffusivity_depth
+                                      do_socrates_radiation, do_lcl_diffusivity_depth, &
+                                      do_prescribed_eddyfluxes
+                                
 
 
 integer, parameter :: num_time_levels = 2 ! Add bucket - number of time levels added to allow timestepping in this module
@@ -1236,6 +1239,13 @@ if(do_damping) then
                              z_pbl) ! have taken the names of arrays etc from vert_turb_driver below. Watch ntp from 2006 call to this routine?
 endif
 
+if (do_prescribed_eddyfluxes) then
+  eddy_hscale_rad = eddy_hscale*pi/180.
+  do k=1, size(eddy_forcing,3)
+    eddy_forcing(:,:,k) = eddy_amplitude/86400.*exp(-0.5**(rad_lat(:,:)/eddy_hscale_rad)**2)*exp(-0.5*((p_full(:,:,k,current)-eddy_press)/eddy_vscale)**2)
+  enddo
+  dt_ug = dt_ug + eddy_forcing !multiply or divide by delta_t
+endif
 
 if(turb) then
 
