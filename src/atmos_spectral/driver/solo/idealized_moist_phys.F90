@@ -266,7 +266,8 @@ real, allocatable, dimension(:,:) ::                                          &
 
 real, allocatable, dimension(:,:,:) :: &
      t_ref,          &   ! relaxation temperature for bettsmiller scheme
-     q_ref               ! relaxation moisture for bettsmiller scheme
+     q_ref           &   ! relaxation moisture for bettsmiller scheme
+     eddy_forcing
 
 real, allocatable, dimension(:,:) :: &
      net_surf_sw_down,  &   ! net sw flux at surface
@@ -318,6 +319,13 @@ integer :: is, ie, js, je, num_levels, nsphum, dt_integer
 real :: dt_real
 type(time_type) :: Time_step
 
+real :: eddy_amplitude = 1. ! amplitude of prescribed eddy forcing, m/s/day
+real :: eddy_hscale = 5.    ! horizontal extent of prescribed eddy forcing, in degrees
+real :: eddy_press = 3.e4   ! pressure level where the prescribed eddy forcing is centered, in Pa
+real :: eddy_vscale = 1.e4  ! vertical extent of prescribed eddy forcin, in Pa
+
+namelist /eddy_forcing_nml/ eddy_amplitude, eddy_hscale, eddy_press, eddy_vscale
+
 !=================================================================================================================================
 contains
 !=================================================================================================================================
@@ -351,6 +359,7 @@ call write_version_number(version, tagname)
 
 #ifdef INTERNAL_FILE_NML
    read (input_nml_file, nml=idealized_moist_phys_nml, iostat=io)
+   read (input_nml_file, nml=eddy_forcing_nml, iostat=io)
    ierr = check_nml_error(io, 'idealized_moist_phys_nml')
 #else
    if ( file_exist('input.nml') ) then
@@ -362,6 +371,12 @@ call write_version_number(version, tagname)
       enddo
 10    call close_file(nml_unit)
    endif
+   if (file_exist('input.nml')) then
+    nml_unit = open_namelist_file()
+    read(nml_unit, eddy_forcing_nml, iostat=io)
+    call close_file(nml_unit)
+   endif
+
 #endif
 stdlog_unit = stdlog()
 write(stdlog_unit, idealized_moist_phys_nml)
@@ -564,6 +579,8 @@ allocate(pref(num_levels+1)) ! reference pressure profile, as in spectral_physic
 allocate(p_half_1d(num_levels+1), ln_p_half_1d(num_levels+1))
 allocate(p_full_1d(num_levels  ), ln_p_full_1d(num_levels  ))
 allocate(capeflag     (is:ie, js:je))
+
+allocate(eddy_forcing (is:ie, js:je, num_levels))
 
 call get_surf_geopotential(z_surf)
 z_surf = z_surf/grav
@@ -830,7 +847,7 @@ integer,                    intent(in)    :: previous, current
 real, dimension(:,:,:),     intent(inout) :: dt_ug, dt_vg, dt_tg
 real, dimension(:,:,:,:),   intent(inout) :: dt_tracers
 
-real :: delta_t
+real :: delta_t, eddy_hscale_rad
 real, dimension(size(ug,1), size(ug,2), size(ug,3)) :: tg_tmp, qg_tmp, RH,tg_interp, mc, dt_ug_conv, dt_vg_conv
 
 ! Simple cloud scheme variabilies to pass to radiation
@@ -1239,6 +1256,9 @@ if(do_damping) then
                              z_pbl) ! have taken the names of arrays etc from vert_turb_driver below. Watch ntp from 2006 call to this routine?
 endif
 
+!
+! Impose prescribed eddy momentum fluxes (idealized experiments)
+!
 if (do_prescribed_eddyfluxes) then
   eddy_hscale_rad = eddy_hscale*pi/180.
   do k=1, size(eddy_forcing,3)

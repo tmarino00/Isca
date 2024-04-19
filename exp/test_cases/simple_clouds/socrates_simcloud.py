@@ -9,7 +9,7 @@ NUM_LEVELS = 40
 base_dir = os.path.dirname(os.path.realpath(__file__))
 # a CodeBase can be a directory on the computer,
 # useful for iterative development
-cb = SocratesCodeBase.from_directory('/home/tmarino/Isca_cl')
+cb = SocratesCodeBase.from_directory('/home/tmarino/Isca-cl')
 
 # or it can point to a specific git repo and commit id.
 # This method should ensure future, independent, reproducibility of results.
