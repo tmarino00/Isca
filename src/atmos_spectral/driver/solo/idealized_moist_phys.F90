@@ -10,7 +10,7 @@ use fms_mod, only: write_version_number, file_exist, close_file, stdlog, error_m
                    FATAL, WARNING, read_data, field_size, uppercase, mpp_pe, check_nml_error
 
 ! cp_air needed for rrtmg and pstd_mks needed for pref calculation
-use           constants_mod, only: grav, rdgas, rvgas, cp_air, PSTD_MKS, dens_h2o 
+use           constants_mod, only: grav, rdgas, rvgas, cp_air, PSTD_MKS, dens_h2o, PI 
 
 use        time_manager_mod, only: time_type, get_time, operator( + )
 
@@ -266,7 +266,7 @@ real, allocatable, dimension(:,:) ::                                          &
 
 real, allocatable, dimension(:,:,:) :: &
      t_ref,          &   ! relaxation temperature for bettsmiller scheme
-     q_ref           &   ! relaxation moisture for bettsmiller scheme
+     q_ref,          &   ! relaxation moisture for bettsmiller scheme
      eddy_forcing
 
 real, allocatable, dimension(:,:) :: &
@@ -857,7 +857,7 @@ real, intent(in) , dimension(:,:,:), optional :: mask
 integer, intent(in) , dimension(:,:),   optional :: kbot
 
 real, dimension(1,1,1):: tracer, tracertnd
-integer :: nql, nqi, nqa   ! tracer indices for stratiform clouds
+integer :: nql, nqi, nqa, k  ! tracer indices for stratiform clouds
 
 if(current == previous) then
    delta_t = dt_real
